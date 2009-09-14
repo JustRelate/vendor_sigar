@@ -110,6 +110,19 @@
 #define strnEQ(s1, s2, n) (strncmp(s1, s2, n) == 0)
 #endif
 
+#ifdef WIN32
+#define strcasecmp stricmp
+#define strncasecmp strnicmp
+#endif
+
+#ifndef strcaseEQ
+#define strcaseEQ(s1, s2) (strcasecmp(s1, s2) == 0)
+#endif
+
+#ifndef strncaseEQ
+#define strncaseEQ(s1, s2, n) (strncasecmp(s1, s2, n) == 0)
+#endif
+
 #ifdef offsetof
 #define sigar_offsetof offsetof
 #else
@@ -117,6 +130,7 @@
 #endif
 
 #define SIGAR_MSEC 1000L
+#define SIGAR_USEC 1000000L
 #define SIGAR_NSEC 1000000000L
 
 #define SIGAR_SEC2NANO(s) \
@@ -277,6 +291,30 @@ int sigar_net_connection_list_grow(sigar_net_connection_list_t *connlist);
     SIGAR_ZERO(&ifconfig->hwaddr.addr.mac); \
     ifconfig->hwaddr.family = SIGAR_AF_LINK
 
+int sigar_net_interface_ipv6_config_get(sigar_t *sigar, const char *name,
+                                        sigar_net_interface_config_t *ifconfig);
+
+#define sigar_net_interface_ipv6_config_init(ifconfig) \
+    ifconfig->address6.family = SIGAR_AF_INET6; \
+    ifconfig->prefix6_length = 0; \
+    ifconfig->scope6 = 0
+
+#define SIGAR_SIN6(s) ((struct sockaddr_in6 *)(s))
+
+#define SIGAR_SIN6_ADDR(s) &SIGAR_SIN6(s)->sin6_addr
+
+#define sigar_net_interface_scope6_set(ifconfig, addr) \
+    if (IN6_IS_ADDR_LINKLOCAL(addr)) \
+        ifconfig->scope6 = SIGAR_IPV6_ADDR_LINKLOCAL; \
+    else if (IN6_IS_ADDR_SITELOCAL(addr)) \
+        ifconfig->scope6 = SIGAR_IPV6_ADDR_SITELOCAL; \
+    else if (IN6_IS_ADDR_V4COMPAT(addr)) \
+        ifconfig->scope6 = SIGAR_IPV6_ADDR_COMPATv4; \
+    else if (IN6_IS_ADDR_LOOPBACK(addr)) \
+        ifconfig->scope6 = SIGAR_IPV6_ADDR_LOOPBACK; \
+    else \
+        ifconfig->scope6 = SIGAR_IPV6_ADDR_ANY
+
 int sigar_tcp_curr_estab(sigar_t *sigar, sigar_tcp_t *tcp);
 
 int sigar_who_list_create(sigar_who_list_t *wholist);
@@ -311,8 +349,8 @@ int sigar_group_name_get(sigar_t *sigar, int gid, char *buf, int buflen);
 #define SIGAR_DISK_STATS_INIT(disk) \
     (disk)->reads = (disk)->writes = \
     (disk)->read_bytes = (disk)->write_bytes = \
-    (disk)->queue = (disk)->time = \
-    (disk)->service_time = SIGAR_FIELD_NOTIMPL; \
+    (disk)->rtime = (disk)->wtime = (disk)->qtime = (disk)->time = \
+    (disk)->queue = (disk)->service_time = SIGAR_FIELD_NOTIMPL; \
     (disk)->snaptime = 0
 
 /* key used for filesystem (/) -> device (/dev/hda1) mapping */
@@ -325,8 +363,30 @@ int sigar_get_iftype(const char *name, int *type, int *inst);
 #endif
 
 #define SIGAR_NIC_LOOPBACK "Local Loopback"
+#define SIGAR_NIC_UNSPEC   "UNSPEC"
+#define SIGAR_NIC_SLIP     "Serial Line IP"
+#define SIGAR_NIC_CSLIP    "VJ Serial Line IP"
+#define SIGAR_NIC_SLIP6    "6-bit Serial Line IP"
+#define SIGAR_NIC_CSLIP6   "VJ 6-bit Serial Line IP"
+#define SIGAR_NIC_ADAPTIVE "Adaptive Serial Line IP"
 #define SIGAR_NIC_ETHERNET "Ethernet"
+#define SIGAR_NIC_ASH      "Ash"
+#define SIGAR_NIC_FDDI     "Fiber Distributed Data Interface"
+#define SIGAR_NIC_HIPPI    "HIPPI"
+#define SIGAR_NIC_AX25     "AMPR AX.25"
+#define SIGAR_NIC_ROSE     "AMPR ROSE"
 #define SIGAR_NIC_NETROM   "AMPR NET/ROM"
+#define SIGAR_NIC_X25      "generic X.25"
+#define SIGAR_NIC_TUNNEL   "IPIP Tunnel"
+#define SIGAR_NIC_PPP      "Point-to-Point Protocol"
+#define SIGAR_NIC_HDLC     "(Cisco)-HDLC"
+#define SIGAR_NIC_LAPB     "LAPB"
+#define SIGAR_NIC_ARCNET   "ARCnet"
+#define SIGAR_NIC_DLCI     "Frame Relay DLCI"
+#define SIGAR_NIC_FRAD     "Frame Relay Access Device"
+#define SIGAR_NIC_SIT      "IPv6-in-IPv4"
+#define SIGAR_NIC_IRDA     "IrLAP"
+#define SIGAR_NIC_EC       "Econet"
 
 #ifndef WIN32
 #include <netdb.h>

@@ -103,7 +103,7 @@ typedef long long sigar_int64_t;
 #elif defined(MAXPATHLEN)
 #   define SIGAR_PATH_MAX MAXPATHLEN
 #else
-#   define SIGAR_PATH_MAX 8192
+#   define SIGAR_PATH_MAX 4096
 #endif
 
 #ifdef WIN32
@@ -141,6 +141,8 @@ typedef struct {
         free,
         actual_used,
         actual_free;
+    double used_percent;
+    double free_percent;
 } sigar_mem_t;
 
 SIGAR_DECLARE(int) sigar_mem_get(sigar_t *sigar, sigar_mem_t *mem);
@@ -163,6 +165,9 @@ typedef struct {
         nice,
         idle,
         wait,
+        irq,
+        soft_irq,
+        stolen,
         total;
 } sigar_cpu_t;
 
@@ -183,7 +188,12 @@ typedef struct {
     char vendor[128];
     char model[128];
     int mhz;
+    int mhz_max;
+    int mhz_min;
     sigar_uint64_t cache_size;
+    int total_sockets;
+    int total_cores;
+    int cores_per_socket;
 } sigar_cpu_info_t;
 
 typedef struct {
@@ -423,13 +433,15 @@ typedef enum {
     SIGAR_FSTYPE_MAX
 } sigar_file_system_type_e;
 
-#define SIGAR_FS_NAME_LEN 64
+#define SIGAR_FS_NAME_LEN SIGAR_PATH_MAX
+#define SIGAR_FS_INFO_LEN 256
 
 typedef struct {
     char dir_name[SIGAR_FS_NAME_LEN];
     char dev_name[SIGAR_FS_NAME_LEN];
-    char type_name[SIGAR_FS_NAME_LEN];     /* e.g. "local" */
-    char sys_type_name[SIGAR_FS_NAME_LEN]; /* e.g. "ext3" */
+    char type_name[SIGAR_FS_INFO_LEN];     /* e.g. "local" */
+    char sys_type_name[SIGAR_FS_INFO_LEN]; /* e.g. "ext3" */
+    char options[SIGAR_FS_INFO_LEN];
     sigar_file_system_type_e type;
     unsigned long flags;
 } sigar_file_system_t;
@@ -453,12 +465,13 @@ typedef struct {
     sigar_uint64_t writes;
     sigar_uint64_t write_bytes;
     sigar_uint64_t read_bytes;
-    sigar_uint64_t queue;
     sigar_uint64_t rtime;
     sigar_uint64_t wtime;
+    sigar_uint64_t qtime;
     sigar_uint64_t time;
     sigar_uint64_t snaptime;
     double service_time;
+    double queue;
 } sigar_disk_usage_t;
 
 /* XXX for sigar_file_system_usage_t compat */
@@ -516,6 +529,7 @@ typedef struct {
 
 typedef struct {
     char default_gateway[SIGAR_INET6_ADDRSTRLEN];
+    char default_gateway_interface[16];
     char host_name[SIGAR_MAXHOSTNAMELEN];
     char domain_name[SIGAR_MAXDOMAINNAMELEN];
     char primary_dns[SIGAR_INET6_ADDRSTRLEN];
@@ -573,8 +587,19 @@ SIGAR_DECLARE(int) sigar_net_route_list_destroy(sigar_t *sigar,
 #define SIGAR_IFF_ALLMULTI    0x200
 #define SIGAR_IFF_MULTICAST   0x800
 #define SIGAR_IFF_SLAVE       0x1000
+#define SIGAR_IFF_MASTER      0x2000
+#define SIGAR_IFF_DYNAMIC     0x4000
 
 #define SIGAR_NULL_HWADDR "00:00:00:00:00:00"
+
+/* scope values from linux-2.6/include/net/ipv6.h */
+#define SIGAR_IPV6_ADDR_ANY        0x0000
+#define SIGAR_IPV6_ADDR_UNICAST    0x0001
+#define SIGAR_IPV6_ADDR_MULTICAST  0x0002
+#define SIGAR_IPV6_ADDR_LOOPBACK   0x0010
+#define SIGAR_IPV6_ADDR_LINKLOCAL  0x0020
+#define SIGAR_IPV6_ADDR_SITELOCAL  0x0040
+#define SIGAR_IPV6_ADDR_COMPATv4   0x0080
 
 typedef struct {
     char name[16];
@@ -585,10 +610,14 @@ typedef struct {
     sigar_net_address_t destination;
     sigar_net_address_t broadcast;
     sigar_net_address_t netmask;
+    sigar_net_address_t address6;
+    int prefix6_length;
+    int scope6;
     sigar_uint64_t
         flags,
         mtu,
         metric;
+    int tx_queue_len;
 } sigar_net_interface_config_t;
 
 SIGAR_DECLARE(int)
@@ -842,10 +871,12 @@ SIGAR_DECLARE(int) sigar_proc_port_get(sigar_t *sigar,
 
 typedef struct {
     const char *build_date;
+    const char *scm_revision;
     const char *version;
     const char *archname;
     const char *archlib;
     const char *binname;
+    const char *description;
     int major, minor, maint, build;
 } sigar_version_t;
 

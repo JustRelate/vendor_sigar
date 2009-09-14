@@ -19,6 +19,22 @@
 #ifndef SIGAR_FORMAT_H
 #define SIGAR_FORMAT_H
 
+typedef struct {
+    double user;
+    double sys;
+    double nice;
+    double idle;
+    double wait;
+    double irq;
+    double soft_irq;
+    double stolen;
+    double combined;
+} sigar_cpu_perc_t;
+
+SIGAR_DECLARE(int) sigar_cpu_perc_calculate(sigar_cpu_t *prev,
+                                            sigar_cpu_t *curr,
+                                            sigar_cpu_perc_t *perc);
+
 SIGAR_DECLARE(int) sigar_uptime_string(sigar_t *sigar, 
                                        sigar_uptime_t *uptime,
                                        char *buffer,
@@ -33,8 +49,9 @@ SIGAR_DECLARE(int) sigar_net_address_to_string(sigar_t *sigar,
                                                sigar_net_address_t *address,
                                                char *addr_str);
 
-SIGAR_DECLARE(sigar_uint32_t) sigar_net_address_hash(sigar_net_address_t *address);
+SIGAR_DECLARE(const char *)sigar_net_scope_to_string(int type);
 
+SIGAR_DECLARE(sigar_uint32_t) sigar_net_address_hash(sigar_net_address_t *address);
 
 SIGAR_DECLARE(const char *)sigar_net_connection_type_get(int type);
 

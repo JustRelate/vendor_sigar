@@ -44,6 +44,9 @@
 #define sigar_isupper(c) \
     (isupper(((unsigned char)(c))))
 
+#define sigar_tolower(c) \
+    (tolower(((unsigned char)(c))))
+
 #ifdef WIN32
 #define sigar_fileno _fileno
 #define sigar_isatty _isatty
@@ -62,6 +65,8 @@
 #define PROCP_FS_ROOT "/proc/"
 #endif
 
+sigar_int64_t sigar_time_now_millis(void);
+
 char *sigar_uitoa(char *buf, unsigned int n, int *len);
 
 int sigar_inet_ntoa(sigar_t *sigar,
@@ -78,6 +83,8 @@ SIGAR_INLINE char *sigar_skip_token(char *p);
 SIGAR_INLINE char *sigar_skip_multiple_token(char *p, int count);
 
 char *sigar_getword(char **line, char stop);
+
+char *sigar_strcasestr(const char *s1, const char *s2);
 
 int sigar_file2str(const char *fname, char *buffer, int buflen);
 
@@ -113,14 +120,50 @@ int sigar_procfs_args_get(sigar_t *sigar, sigar_pid_t pid,
 
 int sigar_mem_calc_ram(sigar_t *sigar, sigar_mem_t *mem);
 
+int sigar_statvfs(sigar_t *sigar,
+                  const char *dirname,
+                  sigar_file_system_usage_t *fsusage);
+
 double sigar_file_system_usage_calc_used(sigar_t *sigar,
                                          sigar_file_system_usage_t *fs);
+
+#define SIGAR_DEV_PREFIX "/dev/"
+
+#define SIGAR_NAME_IS_DEV(dev) \
+    strnEQ(dev, SIGAR_DEV_PREFIX, SSTRLEN(SIGAR_DEV_PREFIX))
+
+typedef struct {
+    char name[256];
+    int is_partition;
+    sigar_disk_usage_t disk;
+} sigar_iodev_t;
+
+sigar_iodev_t *sigar_iodev_get(sigar_t *sigar,
+                               const char *dirname);
+
+int sigar_cpu_core_count(sigar_t *sigar);
+
+/* e.g. VM guest may have 1 virtual ncpu on multicore hosts */
+#define sigar_cpu_socket_count(sigar) \
+    (sigar->ncpu < sigar->lcpu) ? sigar->ncpu : \
+    (sigar->ncpu / sigar->lcpu)
+
+int sigar_cpu_core_rollup(sigar_t *sigar);
 
 void sigar_cpu_model_adjust(sigar_t *sigar, sigar_cpu_info_t *info);
 
 int sigar_cpu_mhz_from_model(char *model);
 
 char *sigar_get_self_path(sigar_t *sigar);
+
+#if defined(__sun) || defined(__FreeBSD__)
+
+#define SIGAR_HAS_DLINFO_MODULES
+#include <dlfcn.h>
+#include <link.h>
+
+int sigar_dlinfo_modules(sigar_t *sigar, sigar_proc_modules_t *procmods);
+#endif
 
 typedef struct sigar_cache_entry_t sigar_cache_entry_t;
 

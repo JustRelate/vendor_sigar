@@ -1,0 +1,42 @@
+Compilieren von statischen Zigarren:
+
+Linux:
+
+gcc -g -fPIC -Iinclude -Isrc/os/linux src/*.c src/os/linux/*.c -c
+ar r libsigar.a *.o
+
+
+Windoze (funzt nur mit diesen, veränderten Sourcen):
+
+/usr/local/i386-mingw32-cross-gcc-3.3.1/bin/i386-mingw32msvc-gcc -g -DWIN32 -D_MSC_VER=1000 -D_WINSOCK2API_ -DNO_ASM -Iinclude -Isrc/os/win32 src/*.c src/os/win32/*.c -c
+/usr/local/i386-mingw32-cross-gcc-3.3.1/bin/i386-mingw32msvc-ar r libsigar.a *.o
+
+
+Slowlaris:
+
+gcc -g -fPIC -Iinclude -Isrc/os/solaris src/*.c src/os/solaris/*.c -c
+ar r libsigar.a *.o
+
+
+Darwin:
+
+# cd dirname(README_infopark)
+git clone git://github.com/hyperic/sigar.git
+cd sigar
+gcc -DDARWIN -g -fPIC -I/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/Headers -I/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/CoreFoundation.framework/Versions/A/Headers -Iinclude -Isrc/os/darwin src/*.c src/os/darwin/*.c -c
+ar r libsigar.a *.o
+version=$(git describe)
+version=${version#sigar-}
+mkdir -p ../macos/$version/{lib,include}
+cp libsigar.a ../macos/$version/lib/
+cp include/*.h ../macos/$version/include/
+cd ..
+rm -rf sigar
+
+
+Compilieren von dynamischen Zigarren:
+
+Windoze:
+
+/usr/local/i386-mingw32-cross-gcc-3.3.1/bin/i386-mingw32msvc-gcc -g -DWIN32 -D_MSC_VER=1000 -D_WINSOCK2API_ -DNO_ASM -Iinclude -Isrc/os/win32 src/*.c src/os/win32/*.c -c
+/usr/local/i386-mingw32-cross-gcc-3.3.1/bin/i386-mingw32msvc-gcc -shared -o sigar.dll *.o -Wl,--out-implib,libsigar.a -lnetapi32 -lws2_32
